@@ -6,7 +6,7 @@ topadigan Windows dasturi.
 
 ## Yuklab olish
 
-[**Eng so‘nggi versiya → Yangi_alifbo_konvertori_setup.exe**](https://github.com/otashnst/yangi-alifbo-konvertori/releases/latest/download/Yangi_alifbo_konvertori_setup.exe)
+[**Eng so‘nggi versiya → Yangi_alifbo_konvertori_setup.exe**](https://github.com/otashnst/yangi-alifbo-konvertori/raw/main/release/Yangi_alifbo_konvertori_setup.exe)
 
 Talab: Windows 10 yoki 11. O‘rnatish uchun administrator paroli kerak emas.
 Birinchi ishga tushirishda Windows «Windows protected your PC» deb ogohlantirsa:
@@ -22,9 +22,17 @@ Birinchi ishga tushirishda Windows «Windows protected your PC» deb ogohlantirs
 
 ## Yangilanishlar xavfsizligi
 
-Har bir reliz bilan `latest.json` chiqadi: unda o‘rnatuvchining SHA-256 summasi va
+`release/` papkasida o‘rnatuvchi va `latest.json` turadi: unda o‘rnatuvchining SHA-256 summasi va
 muallifning Ed25519 imzosi bor. Dastur imzoni ichiga joylangan ochiq kalit bilan tekshiradi
 va imzosiz yoki o‘zgartirilgan yangilanishni o‘rnatmaydi.
+
+## Yangi versiya chiqarish
+
+1. Yangi `Yangi_alifbo_konvertori_setup.exe` ni maxfiy kalit bilan imzolang:
+   `sign_release.exe release_private_key.txt Yangi_alifbo_konvertori_setup.exe 1.8.0 "Nima o‘zgardi" latest.json`
+2. Ikkala faylni `release/` papkasidagi eskilarining o‘rniga yuklang (commit).
+
+Bir necha daqiqadan keyin barcha kompyuterlardagi dastur yangi versiyani taklif qiladi.
 
 ## Muallif
 
