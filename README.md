@@ -1,0 +1,34 @@
+# Yangi alifbo konvertori
+
+Word, Excel va PowerPoint hujjatlaridagi o‘zbekcha matnni O‘RQ–1184-son qonun bilan
+tasdiqlangan **2026-yilgi lotin alifbosiga** (Ö, Ğ, Ş, Ç) o‘giradigan va imlo xatolarini
+topadigan Windows dasturi.
+
+## Yuklab olish
+
+[**Eng so‘nggi versiya → Yangi_alifbo_konvertori_setup.exe**](https://github.com/otashnst/yangi-alifbo-konvertori/releases/latest/download/Yangi_alifbo_konvertori_setup.exe)
+
+Talab: Windows 10 yoki 11. O‘rnatish uchun administrator paroli kerak emas.
+Birinchi ishga tushirishda Windows «Windows protected your PC» deb ogohlantirsa:
+**More info → Run anyway**.
+
+## Imkoniyatlar
+
+- `.docx`, `.xlsx`, `.pptx`, `.txt` fayllar: shrift, jadval va rasmlar o‘zgarmaydi
+- Eski lotin (O‘, G‘, Sh, Ch) va kirill yozuvidan yangi alifboga
+- Imlo tekshiruvi: apostrofsiz yozilgan so‘zlar, x/h xatolari va boshqalar — har bir tuzatishni foydalanuvchi tasdiqlaydi
+- Internetsiz ishlaydi, hujjatlar kompyuterdan tashqariga chiqmaydi
+- Imlo lug‘ati ([yangi-alifbo-lugat](https://github.com/otashnst/yangi-alifbo-lugat)) va dasturning o‘zi avtomatik yangilanadi
+
+## Yangilanishlar xavfsizligi
+
+Har bir reliz bilan `latest.json` chiqadi: unda o‘rnatuvchining SHA-256 summasi va
+muallifning Ed25519 imzosi bor. Dastur imzoni ichiga joylangan ochiq kalit bilan tekshiradi
+va imzosiz yoki o‘zgartirilgan yangilanishni o‘rnatmaydi.
+
+## Muallif
+
+Abduxoliqov Otabek · 2026 · (33) 071-60-70
+
+Imlo lug‘ati: bitg-hunspell (uz-hunspell asosida) va uzb-frequent-words — GPL-3.0.
+Shrift: IBM Plex — SIL Open Font License.
