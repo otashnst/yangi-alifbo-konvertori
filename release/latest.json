@@ -1,8 +1,8 @@
 {
-  "notes": "Dasturni avtomatik yangilash qo‘shildi",
+  "notes": "Xavfsizlik yangilanishi: yangi imzo kaliti, internetsiz rejim, ichki server himoyasi",
   "setup": "Yangi_alifbo_konvertori_setup.exe",
-  "sha256": "2def3a6fb8d9856fbe69d112c6ca5f34b95f541e91dec78b2f029ecd9318d638",
-  "sig": "K4dQ+E+z/9j2Cm0M7SgHjIWuYiE/25r8IKRCEIy1Q+TPwp3UQbVW0ibw0PshtroSQNxEnIHNB6xWlLlxN5XvCQ==",
-  "size": 4276832,
-  "version": "1.7.0"
+  "sha256": "45da6c7929625d97a9d621d42ef7ee92cd5eb3e6cd8a73acb526df2bb7f4cbbd",
+  "sig": "t+4nlncJYeYwjwysQSl+s90MqM9VZjHy7pQVRwGX1foEBH78uKnp+FX5xjHw29uYAF88mbZNzDLwVzfmuYo5BQ==",
+  "size": 4283070,
+  "version": "1.8.0"
 }

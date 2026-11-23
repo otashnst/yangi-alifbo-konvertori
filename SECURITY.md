@@ -51,7 +51,8 @@ Dastur oynasi (Microsoft WebView2) interfeysni kompyuter ichidagi kichik serverd
 - Dastur va lug‘at yangilanishlari muallifning **Ed25519** kaliti bilan imzolanadi; ochiq kalit dastur ichiga joylangan.
   Imzosi yo‘q yoki noto‘g‘ri yangilanish o‘rnatilmaydi — GitHub akkaunti buzilgan taqdirda ham.
 - Har bir fayl SHA-256 va hajmi bo‘yicha tekshiriladi; yarim yuklangan lug‘at ishlatilmaydi.
-- Maxfiy kalit faqat muallif kompyuterida, oflayn saqlanadi (`src/tools/relizchi`).
+- Maxfiy kalit muallif kompyuterida `relizchi` vositasi bilan yaratilgan va faqat u yerda, oflayn saqlanadi (`src/tools/relizchi`).
+- Ochiq kalit (1.8+): `ttgkHVFlqQ5SIcloORTbN9aFy4FzeOOWeYTydFepfUQ=`
 - Dastur yangilanishi foydalanuvchi «Yangilash» tugmasini bosgandagina o‘rnatiladi.
 
 ## 5. Huquqlar

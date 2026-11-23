@@ -24,7 +24,7 @@ import (
 const (
 	appReleaseURL = "https://raw.githubusercontent.com/otashnst/yangi-alifbo-konvertori/main/release/"
 	// Ed25519 public key of the release signing key (the private half stays with the author).
-	releasePubKey = "znv81AK9ulPns64xRbUVgS91lYm+rircCFEjWrxiK6o="
+	releasePubKey = "ttgkHVFlqQ5SIcloORTbN9aFy4FzeOOWeYTydFepfUQ="
 )
 
 type releaseInfo struct {
