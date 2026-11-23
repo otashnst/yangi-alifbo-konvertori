@@ -1,0 +1,5 @@
+Windows Registry Editor Version 5.00
+
+; Yangi alifbo konvertori: internetga ulanishni taqiqlash (barcha foydalanuvchilar)
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\YangiAlifbo]
+"Offline"=dword:00000001

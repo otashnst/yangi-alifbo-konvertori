@@ -20,6 +20,13 @@ Birinchi ishga tushirishda Windows «Windows protected your PC» deb ogohlantirs
 - Internetsiz ishlaydi, hujjatlar kompyuterdan tashqariga chiqmaydi
 - Imlo lug‘ati ([yangi-alifbo-lugat](https://github.com/otashnst/yangi-alifbo-lugat)) va dasturning o‘zi avtomatik yangilanadi
 
+## IT va xavfsizlik bo‘limlari uchun
+
+- [SECURITY.md](SECURITY.md) — ma’lumotlar, tarmoq, yangilanishlar va cheklovlar
+- [THIRD_PARTY.md](THIRD_PARTY.md), [sbom.cdx.json](sbom.cdx.json) — komponentlar ro‘yxati (SBOM)
+- [policy/offline.reg](policy/offline.reg) — internetni administrator siyosati bilan o‘chirish
+- [src/](src/) — to‘liq manba kodi va yig‘ish skripti
+
 ## Yangilanishlar xavfsizligi
 
 `release/` papkasida o‘rnatuvchi va `latest.json` turadi: unda o‘rnatuvchining SHA-256 summasi va

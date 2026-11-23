@@ -1,0 +1,8 @@
+app/dict/
+app/index.html
+app/*.syso
+web/node_modules/
+web/hunspell.bundle.js
+installer/*.exe
+installer/LICENSE-*.txt
+*_private_key*

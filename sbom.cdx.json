@@ -1,0 +1,193 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:6022c169-4676-4869-bba5-b6abdfa21e0a",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-11-23T17:59:28Z",
+    "component": {
+      "type": "application",
+      "name": "Yangi alifbo konvertori",
+      "version": "1.8.0",
+      "supplier": {
+        "name": "Abduxoliqov Otabek"
+      }
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "go-webview2",
+      "version": "0.0.0-20260205173254-56598839c808",
+      "purl": "pkg:golang/github.com/jchv/go-webview2@v0.0.0-20260205173254-56598839c808",
+      "description": "Dastur oynasi (Microsoft WebView2 bilan bog‘lanish)",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "go-winloader",
+      "version": "0.0.0-20250406163304-c1995be93bd1",
+      "purl": "pkg:golang/github.com/jchv/go-winloader@v0.0.0-20250406163304-c1995be93bd1",
+      "description": "WebView2Loader yuklovchi",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "golang.org/x/sys (github.com/golang/sys)",
+      "version": "0.30.0",
+      "purl": "pkg:golang/golang.org/x/sys@v0.30.0",
+      "description": "Windows tizim chaqiruvlari, registr",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "Go standart kutubxonasi",
+      "version": "1.24.7",
+      "purl": "pkg:golang/stdlib@1.24.7",
+      "description": "HTTP, kriptografiya (Ed25519, SHA-256)",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "JSZip",
+      "version": "3.10.1",
+      "purl": "pkg:npm/jszip@3.10.1",
+      "description": "docx/xlsx/pptx arxivlarini ochish",
+      "licenses": [
+        {
+          "expression": "MIT OR GPL-3.0"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "acc7e41455a80765b5fd9c7ee1b8078a6d160bbbca455aeae854de65c947d59e"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "hunspell-asm",
+      "version": "4.0.2",
+      "purl": "pkg:npm/hunspell-asm@4.0.2",
+      "description": "Hunspell (WebAssembly) imlo dvigateli",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "aa4cd3247c049db064f3cc9e319c5f09eb0da6e05e02dc290fa01a31ca765b86"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "Hunspell",
+      "version": "fc6a952-200131",
+      "purl": "pkg:github/hunspell/hunspell@fc6a952",
+      "description": "hunspell-asm ichidagi imlo dvigateli",
+      "licenses": [
+        {
+          "expression": "MPL-1.1 OR GPL-2.0-or-later OR LGPL-2.1-or-later"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "emscripten-wasm-loader",
+      "version": "3.0.3",
+      "purl": "pkg:npm/emscripten-wasm-loader@3.0.3",
+      "description": "hunspell-asm ichida WASM yuklovchi",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "IBM Plex Sans / Mono (Fontsource)",
+      "version": "5.1.1",
+      "purl": "pkg:npm/%40fontsource/ibm-plex-sans@5.1.1",
+      "description": "Shrift",
+      "licenses": [
+        {
+          "license": {
+            "id": "OFL-1.1"
+          }
+        }
+      ]
+    },
+    {
+      "type": "data",
+      "name": "bitg-hunspell uz_UZ-2026",
+      "version": "0.1.1",
+      "purl": "pkg:github/dtwinuz/bitg-hunspell@0.1.1",
+      "description": "Imlo lug‘ati (2026 alifbosi)",
+      "licenses": [
+        {
+          "license": {
+            "id": "GPL-3.0-only"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a4262ccd948fe9f897b22085e8e2209771c8f2a5c24b5e6912547db048583265"
+        }
+      ]
+    },
+    {
+      "type": "data",
+      "name": "uzb-frequent-words",
+      "version": "master",
+      "purl": "pkg:github/kaharjan/uzb-frequent-words",
+      "description": "So‘zlar chastotasi (kirill → 2026 lotin)",
+      "licenses": [
+        {
+          "license": {
+            "id": "GPL-3.0-only"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "dac9569aa4046ed4a59479ef2d29495830e4f2cb50f1174a8375c3a72323be42"
+        }
+      ]
+    }
+  ]
+}
