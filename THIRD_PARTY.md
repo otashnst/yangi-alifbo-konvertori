@@ -16,6 +16,8 @@ Mashina o‘qiydigan nusxa: [`sbom.cdx.json`](sbom.cdx.json) (CycloneDX 1.5).
 | bitg-hunspell uz_UZ-2026 | 0.1.1 | GPL-3.0-only | Imlo lug‘ati (2026 alifbosi) |
 | uzb-frequent-words | master | GPL-3.0-only | So‘zlar chastotasi (kirill → 2026 lotin) |
 
+**Tashqi xizmat (dastur tarkibida emas):** Google Gemini API — faqat ixtiyoriy «AI tahlilchi» uchun, foydalanuvchining o‘z kaliti bilan (SECURITY.md, 5-band).
+
 **Izohlar**
 - `nanoid@2.1.11` (hunspell-asm bog‘liqligi) zaiflik e’lonlari (GHSA-mwcw-c2x4-8c55, GHSA-28wg-ghj8-5hjv va boshq.) sababli
   yig‘ishda `src/web/nanoid-shim.js` bilan almashtirilgan — dastur ichida nanoid kodi yo‘q.

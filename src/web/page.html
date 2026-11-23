@@ -59,6 +59,24 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .netbox input{width:16px;height:16px;accent-color:var(--gold)}
 .netbox input:disabled+*{opacity:.7}
 .note2{font-size:11px;color:var(--side-muted)}
+.aioff,.aisetup{display:grid;gap:12px}
+.aisetup h2{margin:0;font-size:18px;font-weight:600}
+.steps2{margin:0;padding-left:20px;display:grid;gap:8px}
+.steps2 li{padding-left:4px}
+.warn{background:var(--amber-soft);border:1px solid #ecd3a7;border-radius:8px;padding:12px 14px;font-size:14px;color:#5b3a06;line-height:1.55}
+.warn b{display:block;margin-bottom:2px;color:#4a2f04}
+.warn.slim{padding:8px 12px;font-size:13px}
+.flabel{font-weight:600;font-size:14px}
+.seg,.tasks{display:flex;gap:6px;flex-wrap:wrap}
+.seg button,.tasks button{border:1px solid #c9d0da;background:#fff;color:var(--ink);border-radius:99px;padding:6px 14px;font-size:14px}
+.seg button[aria-checked="true"],.tasks button[aria-checked="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
+.seg button:disabled{opacity:.5;cursor:default}
+.aihead{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-bottom:1px solid var(--line)}
+.aiout{padding:16px 20px;font-size:15px;line-height:1.65;display:grid;gap:8px;max-width:75ch}
+.aiout h3{margin:8px 0 0;font-size:16px;font-weight:600}
+.aiout p{margin:0;white-space:pre-wrap}
+.aiout ul{margin:0;padding-left:20px;display:grid;gap:4px}
+.aiout .spin{color:var(--muted)}
 .law{border-top:1px solid var(--navy-line);padding-top:14px}
 
 /* main */
@@ -158,7 +176,7 @@ button.fixb s{color:var(--bad)}button.fixb b{color:var(--ok)}
 </style></head><body>
 <div class="app">
   <aside class="side">
-    <div class="brand"><div class="mark">Ö</div><div><b>Yangi alifbo</b><span>konvertori · 1.8</span></div></div>
+    <div class="brand"><div class="mark">Ö</div><div><b>Yangi alifbo</b><span>konvertori · 1.9</span></div></div>
     <nav class="steps" aria-label="Qadamlar">
       <button data-step="1" aria-current="step"><span class="dot">1</span>Fayl tanlash</button>
       <button data-step="2" disabled><span class="dot">2</span>Alifboga o‘girish</button>
@@ -166,6 +184,7 @@ button.fixb s{color:var(--bad)}button.fixb b{color:var(--ok)}
       <button data-step="4" disabled><span class="dot">4</span>Saqlash</button>
       <div class="sep" role="separator"></div>
       <button data-step="text"><span class="dot"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M1.5 2.5h9M1.5 6h9M1.5 9.5h5.5"></path></svg></span>Matnni o‘girish</button>
+      <button data-step="ai"><span class="dot"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 1.5l1.3 3.2L11.5 6 8.3 7.3 7 10.5 5.7 7.3 2.5 6l3.2-1.3z"></path><path d="M11.5 10v3M10 11.5h3"></path></svg></span>AI tahlilchi</button>
     </nav>
     <div class="side-foot">
       <div class="updbox" id="updBox" hidden aria-live="polite">
@@ -234,6 +253,58 @@ button.fixb s{color:var(--bad)}button.fixb b{color:var(--ok)}
         <div class="saveline"><button class="btn" id="saveBtn">Faylni saqlash</button><span id="saveMsg" class="note" aria-live="polite"></span></div>
       </div>
       <div class="vfoot"><button class="link" data-go="3">← Orqaga</button><button class="btn2" data-go="new">Yangi fayl o‘girish</button></div>
+    </section>
+
+    <!-- ai -->
+    <section class="view" id="vai" hidden>
+      <header class="vhead"><div><div class="eyebrow">Ixtiyoriy · Google Gemini</div><h1>AI tahlilchi</h1></div></header>
+      <div class="card pad aioff" id="aiOff" hidden>
+        <b id="aiOffTitle">AI tahlilchi o‘chirilgan</b>
+        <p class="note" id="aiOffText"></p>
+      </div>
+      <div class="card pad aisetup" id="aiSetup" hidden>
+        <h2>Gemini kalitini ulash</h2>
+        <ol class="steps2">
+          <li><span><b>aistudio.google.com/apikey</b> saytini oching va Google akkauntingiz bilan kiring.</span> <button class="mini" id="aiOpenSite" type="button">Saytni ochish</button></li>
+          <li>«Create API key» tugmasini bosing — kalit bepul.</li>
+          <li>Kalitni nusxalab, quyiga qo‘ying.</li>
+        </ol>
+        <div class="warn">
+          <b>Muhim: matn Google’ga yuboriladi.</b>
+          Bepul tarifda Google yuborilgan matnlardan o‘z mahsulotlarini yaxshilash uchun foydalanishi va ularni xodimlari ko‘rib chiqishi mumkin. Maxfiy, shaxsiy ma’lumotli yoki xizmat siri bo‘lgan hujjatlarni yubormang.
+        </div>
+        <label class="chk" for="aiConsent"><input type="checkbox" id="aiConsent"><span><b>Tushundim:</b> AI tahlilchiga faqat maxfiy bo‘lmagan matn yuboraman.</span></label>
+        <div class="field"><label for="aiKey">Gemini API kaliti</label><span class="h">Kalit shu kompyuterda Windows shifrlashi bilan saqlanadi va faqat Google’ga yuboriladi.</span>
+          <div class="row"><input type="password" id="aiKey" autocomplete="off" spellcheck="false" placeholder="AIza…" style="flex:1;min-width:220px"><button class="btn" id="aiSave" style="padding:9px 18px;font-size:14px">Ulash</button></div>
+          <span id="aiSetupMsg" class="note" aria-live="polite"></span></div>
+      </div>
+      <div id="aiMain" hidden style="display:grid;gap:16px">
+        <div class="warn slim">Tahlil uchun matn Google serverlariga yuboriladi. Maxfiy hujjatlarni yubormang.</div>
+        <div class="card pad" style="display:grid;gap:14px">
+          <div class="seg" role="radiogroup" aria-label="Matn manbasi">
+            <button type="button" role="radio" aria-checked="true" data-src="own">O‘z matnim</button>
+            <button type="button" role="radio" aria-checked="false" data-src="file" id="aiSrcFile" disabled>Joriy fayl</button>
+          </div>
+          <div class="field"><label for="aiText">Matn</label><textarea id="aiText" placeholder="Tahlil qilinadigan matnni shu yerga yozing yoki qo‘ying (lotin yoki kirill)."></textarea><span class="note" id="aiCount">0 / 30 000 belgi</span></div>
+          <div class="field"><span class="flabel">Amal</span>
+            <div class="tasks" role="radiogroup" aria-label="Amal">
+              <button type="button" role="radio" aria-checked="true" data-task="imlo">Imlo va grammatika</button>
+              <button type="button" role="radio" aria-checked="false" data-task="rasmiy">Rasmiy uslubga keltirish</button>
+              <button type="button" role="radio" aria-checked="false" data-task="qisqa">Qisqa mazmun</button>
+              <button type="button" role="radio" aria-checked="false" data-task="tahlil">Hujjat tahlili</button>
+              <button type="button" role="radio" aria-checked="false" data-task="savol">Savol berish</button>
+            </div>
+          </div>
+          <div class="field" id="aiQWrap" hidden><label for="aiQ">Savol</label><input type="text" id="aiQ" maxlength="1000" placeholder="Masalan: qaysi topshiriqlarning muddati 2-noyabr?"></div>
+          <div class="row"><button class="btn" id="aiRun">Tahlil qilish</button><span id="aiMsg" class="note" aria-live="polite"></span></div>
+        </div>
+        <div class="card" id="aiOutCard" hidden>
+          <div class="aihead"><span class="gtitle">Natija · yangi alifboda</span><button class="mini" id="aiCopy">Nusxa olish</button></div>
+          <div class="aiout" id="aiOut"></div>
+          <div class="tfoot">AI xato qilishi mumkin — natijani tekshirib ishlating.</div>
+        </div>
+        <div class="note">Kalit: <span id="aiKeyHint"></span> · <span id="aiModel"></span> · <button class="link" id="aiDel" style="padding:0;font-size:13px">Kalitni o‘chirish</button></div>
+      </div>
     </section>
 
     <!-- text -->

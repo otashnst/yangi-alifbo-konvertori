@@ -1,0 +1,5 @@
+Windows Registry Editor Version 5.00
+
+; Yangi alifbo konvertori: AI tahlilchini o'chirish (barcha foydalanuvchilar)
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\YangiAlifbo]
+"DisableAI"=dword:00000001

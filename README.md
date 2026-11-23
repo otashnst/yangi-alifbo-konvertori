@@ -18,6 +18,7 @@ Birinchi ishga tushirishda Windows «Windows protected your PC» deb ogohlantirs
 - Eski lotin (O‘, G‘, Sh, Ch) va kirill yozuvidan yangi alifboga
 - Imlo tekshiruvi: apostrofsiz yozilgan so‘zlar, x/h xatolari va boshqalar — har bir tuzatishni foydalanuvchi tasdiqlaydi
 - Internetsiz ishlaydi, hujjatlar kompyuterdan tashqariga chiqmaydi
+- Ixtiyoriy «AI tahlilchi»: foydalanuvchining bepul Google Gemini kaliti bilan matn tahlili, tahriri va qisqa mazmuni (matn Google’ga yuboriladi — maxfiy hujjatlar uchun emas)
 - Imlo lug‘ati ([yangi-alifbo-lugat](https://github.com/otashnst/yangi-alifbo-lugat)) va dasturning o‘zi avtomatik yangilanadi
 
 ## IT va xavfsizlik bo‘limlari uchun
@@ -25,6 +26,7 @@ Birinchi ishga tushirishda Windows «Windows protected your PC» deb ogohlantirs
 - [SECURITY.md](SECURITY.md) — ma’lumotlar, tarmoq, yangilanishlar va cheklovlar
 - [THIRD_PARTY.md](THIRD_PARTY.md), [sbom.cdx.json](sbom.cdx.json) — komponentlar ro‘yxati (SBOM)
 - [policy/offline.reg](policy/offline.reg) — internetni administrator siyosati bilan o‘chirish
+- [policy/disable-ai.reg](policy/disable-ai.reg) — AI tahlilchini administrator siyosati bilan o‘chirish
 - [src/](src/) — to‘liq manba kodi va yig‘ish skripti
 
 ## Yangilanishlar xavfsizligi

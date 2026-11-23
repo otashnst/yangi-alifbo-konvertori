@@ -153,6 +153,11 @@ func startServer(exitWhenIdle bool) string {
 			upd.check()
 		}
 	}()
+	geminiURL := geminiBaseURL
+	if v := os.Getenv("YA_GEMINI_URL"); v != "" {
+		geminiURL = v
+	}
+	newAIService(baseDir, geminiURL, settings.netAllowed).register(mux)
 	fsub, _ := fs.Sub(fontFS, "fonts")
 	mux.Handle("/fonts/", http.StripPrefix("/fonts/", http.FileServer(http.FS(fsub))))
 	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
@@ -342,6 +347,12 @@ func main() {
 				finish("saved", path)
 			}
 		}()
+	})
+	w.Bind("openURL", func(u string) {
+		// only the Google AI Studio key page may be opened from the app
+		if u == "https://aistudio.google.com/apikey" {
+			exec.Command("rundll32", "url.dll,FileProtocolHandler", u).Start()
+		}
 	})
 	w.Bind("openFolder", func(path string) {
 		if wasSaved(path) { // only folders of files this app itself saved

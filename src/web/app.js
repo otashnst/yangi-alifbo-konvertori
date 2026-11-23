@@ -98,6 +98,7 @@ function convertXml(xml,tag,counts,skip,words,ctx2){
   for(const grp of groups){
     const full=grp.map(n=>n.out).join("");
     if(ctx2.all)UzSpell.collectWords(full,ctx2.all);
+    if(ctx2.paras&&full.trim())ctx2.paras.push(full);
     if(ctx2.fixes&&ctx2.fixes.size)fixGroup(grp,full,ctx2.fixes);
   }
   let out="",pos=0;
@@ -136,13 +137,13 @@ const PARTS={
 async function processFile(file,fixes){
   const ext=file.name.split(".").pop().toLowerCase();
   const counts=newCounts(),words=new Set(),skip=skipList();
-  const ctx2={fixes,all:new Map()};
+  const ctx2={fixes,all:new Map(),paras:[]};
   const base=file.name.replace(/\.[^.]+$/,"");
   const outName=base+"_yangi_alifbo."+ext;
   if(ext==="txt"){
     const t=await file.text();let o=convert(t,counts,skip);collectWords(t,o,words);
     UzSpell.collectWords(o,ctx2.all);if(fixes&&fixes.size)o=UzSpell.applyFixes(o,fixes);
-    return {name:outName,blob:new Blob([o],{type:"text/plain"}),counts,words,all:ctx2.all};
+    return {name:outName,blob:new Blob([o],{type:"text/plain"}),counts,words,all:ctx2.all,text:o};
   }
   if(!PARTS[ext])throw new Error("Bu fayl turi qo‘llab-quvvatlanmaydi. .docx, .xlsx, .pptx yoki .txt fayl tanlang.");
   if(typeof JSZip==="undefined")throw new Error("Kutubxona yuklanmadi. Sahifani yangilab ko‘ring.");
@@ -157,7 +158,7 @@ async function processFile(file,fixes){
     if(xml!==orig)zip.file(path,xml);
   }
   const blob=await zip.generateAsync({type:"blob",compression:"DEFLATE",compressionOptions:{level:6}});
-  return {name:outName,blob,counts,words,all:ctx2.all};
+  return {name:outName,blob,counts,words,all:ctx2.all,text:ctx2.paras.join("\n")};
 }
 
 // downloads capability
@@ -281,17 +282,18 @@ $("netOff").onchange=async()=>{
   try{await api("app/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({offline:want})})}catch(e){}
   await loadNet();showDict(await getDictInfo());
   if(want)$("updBox").hidden=true;
+  aiLoad();
 };
 
 // ---- qadamlar ----
-const VIEWS={1:"v1",2:"v2",3:"v3",4:"v4",text:"vtext"};
+const VIEWS={1:"v1",2:"v2",3:"v3",4:"v4",text:"vtext",ai:"vai"};
 const S={file:null,r:null,found:null,rows:[],fixes:new Map(),maxStep:1,saved:false,blobKey:null,blob:null};
 function show(step){
   for(const [k,id] of Object.entries(VIEWS))$(id).hidden=String(k)!==String(step);
   document.querySelectorAll(".steps button").forEach(b=>{
     const s=b.dataset.step,cur=String(s)===String(step);
     if(cur)b.setAttribute("aria-current","step");else b.removeAttribute("aria-current");
-    if(s==="text")return;
+    if(isNaN(+s))return;
     const n=+s,done=n<S.maxStep||(n===4&&S.saved);
     b.disabled=n>S.maxStep;b.classList.toggle("done",done&&!cur);
     b.querySelector(".dot").textContent=done&&!cur?"✓":String(n);
@@ -400,6 +402,83 @@ input.onchange=()=>{if(input.files.length)handleFile([...input.files]);input.val
 ["dragenter","dragover"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add("over")}));
 ["dragleave","drop"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove("over")}));
 drop.addEventListener("drop",e=>{if(e.dataTransfer.files.length)handleFile([...e.dataTransfer.files])});
+
+// ---- AI tahlilchi ----
+const AI={status:null,task:"imlo",src:"own",own:""};
+async function aiPost(path,body){
+  try{const r=await api(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})});return await r.json()}
+  catch(e){return {ok:false,error:"Dastur bilan aloqa uzildi."}}
+}
+async function aiLoad(){
+  try{const r=await api("ai/status");if(!r.ok)throw 0;AI.status=await r.json()}catch(e){AI.status=null}
+  aiRender();
+}
+function aiRender(){
+  const st=AI.status;
+  $("aiOff").hidden=!!(st&&st.enabled);$("aiSetup").hidden=!(st&&st.enabled&&!st.hasKey);$("aiMain").hidden=!(st&&st.enabled&&st.hasKey);
+  if(!st){$("aiOffTitle").textContent="AI tahlilchi bu ko‘rinishda mavjud emas";$("aiOffText").textContent="U faqat o‘rnatilgan dasturda ishlaydi.";return}
+  if(!st.enabled){
+    $("aiOffTitle").textContent="AI tahlilchi o‘chirilgan";
+    $("aiOffText").textContent=st.reason==="policy"?"Tashkilotingiz administratori AI tahlilchidan foydalanishni o‘chirgan.":st.reason==="policy_offline"?"Tashkilotingiz administratori bu kompyuterda internetdan foydalanishni o‘chirgan. AI tahlilchi internet orqali ishlaydi.":"«Internetga ulanmaslik» rejimi yoqilgan. AI tahlilchi internet orqali ishlaydi — uni ishlatish uchun chap paneldagi belgini olib tashlang.";
+    return;
+  }
+  if(st.hasKey){$("aiKeyHint").textContent="••••"+st.keyHint;$("aiModel").textContent=st.model}
+  const f=$("aiSrcFile");f.disabled=!(S.r&&S.r.text);f.textContent=S.file?("Joriy fayl: "+S.file.name):"Joriy fayl";
+  if(f.disabled&&AI.src==="file")aiSetSrc("own");
+}
+function aiSetSrc(src){
+  AI.src=src;document.querySelectorAll("#vai .seg button").forEach(b=>b.setAttribute("aria-checked",String(b.dataset.src===src)));
+  const t=$("aiText");
+  if(src==="file"){AI.own=t.value;t.value=S.r?S.r.text:"";t.readOnly=true}else{t.value=AI.own;t.readOnly=false}
+  aiCount();
+}
+function aiCount(){const n=[...$("aiText").value].length,max=(AI.status&&AI.status.maxChars)||30000;$("aiCount").textContent=n.toLocaleString("ru-RU")+" / "+max.toLocaleString("ru-RU")+" belgi";$("aiCount").className=n>max?"err":"note"}
+document.querySelectorAll("#vai .seg button").forEach(b=>b.onclick=()=>{if(!b.disabled)aiSetSrc(b.dataset.src)});
+document.querySelectorAll("#vai .tasks button").forEach(b=>b.onclick=()=>{AI.task=b.dataset.task;document.querySelectorAll("#vai .tasks button").forEach(x=>x.setAttribute("aria-checked",String(x===b)));$("aiQWrap").hidden=AI.task!=="savol"});
+$("aiText").addEventListener("input",aiCount);
+$("aiOpenSite").onclick=()=>{if(window.openURL)window.openURL("https://aistudio.google.com/apikey");else{const a=document.createElement("a");a.href="https://aistudio.google.com/apikey";a.target="_blank";a.rel="noopener";a.click()}};
+$("aiSave").onclick=async()=>{
+  const m=$("aiSetupMsg");m.className="note";
+  if(!$("aiConsent").checked){m.className="err";m.textContent="Avval ogohlantirishni tasdiqlang.";return}
+  $("aiSave").disabled=true;m.textContent="Kalit tekshirilmoqda…";
+  const r=await aiPost("ai/key",{key:$("aiKey").value,consent:true});
+  $("aiSave").disabled=false;
+  if(!r.ok){m.className="err";m.textContent=r.error;return}
+  $("aiKey").value="";m.textContent="";AI.status=r.status;aiRender();
+};
+$("aiDel").onclick=async()=>{const r=await aiPost("ai/key/delete");if(r.status)AI.status=r.status;$("aiConsent").checked=false;$("aiOutCard").hidden=true;aiRender()};
+// tiny safe markdown: headings, bullets, **bold** — built with DOM nodes, never innerHTML
+function mdInline(parent,line){
+  const parts=line.split(/(\*\*[^*]+\*\*)/g);
+  for(const p of parts){if(/^\*\*[^*]+\*\*$/.test(p))parent.append(el("b","",p.slice(2,-2)));else if(p)parent.append(document.createTextNode(p))}
+}
+function renderMd(box,text){
+  box.textContent="";let ul=null,para=null;
+  for(const raw of text.split("\n")){
+    const line=raw.replace(/\s+$/,"");
+    const h=line.match(/^#{1,4}\s+(.*)$/),li=line.match(/^\s*(?:[-*•]|\d+[.)])\s+(.*)$/);
+    if(h){ul=null;para=null;const e=el("h3");mdInline(e,h[1]);box.append(e)}
+    else if(li){para=null;if(!ul){ul=el("ul");box.append(ul)}const e=el("li");mdInline(e,li[1]);ul.append(e)}
+    else if(!line.trim()){ul=null;para=null}
+    else{ul=null;if(!para){para=el("p");box.append(para)}else para.append(document.createTextNode("\n"));mdInline(para,line)}
+  }
+}
+let aiLast="";
+$("aiRun").onclick=async()=>{
+  const m=$("aiMsg"),btn=$("aiRun");m.className="note";
+  let text=$("aiText").value.trim();
+  if(!text){m.className="err";m.textContent="Tahlil uchun matn kiriting.";return}
+  if(AI.src==="own")text=convert(text,newCounts(),[]); // eski lotin / kirill → yangi alifbo
+  btn.disabled=true;m.textContent="Gemini javob tayyorlamoqda…";
+  $("aiOutCard").hidden=false;const out=$("aiOut");out.textContent="";out.append(el("p","spin","Tahlil qilinmoqda…"));
+  const r=await aiPost("ai/run",{task:AI.task,text,question:$("aiQ").value});
+  btn.disabled=false;
+  if(!r.ok){m.className="err";m.textContent=r.error;$("aiOutCard").hidden=true;return}
+  m.textContent="";aiLast=convert(r.text,newCounts(),[]);renderMd(out,aiLast);
+};
+$("aiCopy").onclick=()=>{navigator.clipboard.writeText(aiLast).then(()=>{$("aiCopy").textContent="Nusxa olindi"},()=>{});setTimeout(()=>$("aiCopy").textContent="Nusxa olish",1500)};
+document.querySelector('.steps [data-step="ai"]').addEventListener("click",aiLoad);
+aiLoad();
 
 // ---- matn ----
 const tin=$("tin"),tout=$("tout"),tag=$("sampleTag"),tsp=$("tspell");
