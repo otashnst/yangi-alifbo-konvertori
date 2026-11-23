@@ -17,5 +17,7 @@ python3 web/build_page.py
 (cd app && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -H windowsgui" -o ../installer/Yangi_alifbo_konvertori.exe .)
 # 4. installer
 cp app/dict/LICENSE-uz_UZ-2026-GPL3.txt installer/ && cp app/fonts/LICENSE-IBM-Plex-OFL.txt installer/
+# uzb-frequent-words is GPL-3.0 as well (same license text)
+cp app/dict/LICENSE-uz_UZ-2026-GPL3.txt installer/LICENSE-freq-GPL3.txt
 (cd installer && makensis -V2 setup.nsi)
 sha256sum installer/Yangi_alifbo_konvertori.exe installer/Yangi_alifbo_konvertori_setup.exe
