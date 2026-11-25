@@ -28,8 +28,9 @@ const (
 )
 
 type aiConfig struct {
-	Model   string `json:"model"`
-	Consent bool   `json:"consent"`
+	Model   string   `json:"model"`
+	Models  []string `json:"models"` // fallbacks, best first
+	Consent bool     `json:"consent"`
 }
 
 type aiService struct {
@@ -44,7 +45,7 @@ type aiService struct {
 }
 
 func newAIService(baseDir, base string, netAllowed func() bool) *aiService {
-	a := &aiService{dir: filepath.Join(baseDir, "ai"), base: base, netAllowed: netAllowed, client: &http.Client{Timeout: 90 * time.Second}}
+	a := &aiService{dir: filepath.Join(baseDir, "ai"), base: base, netAllowed: netAllowed, client: &http.Client{Timeout: 60 * time.Second}}
 	if b, err := os.ReadFile(filepath.Join(a.dir, "config.json")); err == nil {
 		json.Unmarshal(b, &a.cfg)
 	}
@@ -109,18 +110,19 @@ func (a *aiService) call(method, url string, body []byte, key string) ([]byte, e
 	case resp.StatusCode == 403:
 		return nil, &aiError{resp.StatusCode, "Bu kalitga Gemini API’dan foydalanish ruxsati yo‘q."}
 	case resp.StatusCode >= 500:
-		return nil, &aiError{resp.StatusCode, "Google serveri hozir javob bermadi. Keyinroq urinib ko‘ring."}
+		return nil, &aiError{resp.StatusCode, "Gemini hozir band (Google serverlari yuklangan). Bir oz kutib, qayta urinib ko‘ring."}
 	}
 	return nil, &aiError{resp.StatusCode, "Gemini so‘rovni qabul qilmadi (HTTP " + strconv.Itoa(resp.StatusCode) + ")."}
 }
 
 var verRe = regexp.MustCompile(`gemini-(\d+(?:\.\d+)?)`)
 
-// pickModel lists the models this key can use and picks the newest stable "flash" one.
-func (a *aiService) pickModel(key string) (string, error) {
+// pickModels lists the models this key can use, best first: newest stable "flash",
+// then "flash-lite", then others. Free-tier limits are per model, so the rest are fallbacks.
+func (a *aiService) pickModels(key string) ([]string, error) {
 	b, err := a.call("GET", a.base+"models?pageSize=1000", nil, key)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	var list struct {
 		Models []struct {
@@ -129,7 +131,7 @@ func (a *aiService) pickModel(key string) (string, error) {
 		} `json:"models"`
 	}
 	if json.Unmarshal(b, &list) != nil {
-		return "", &aiError{0, "Google javobini o‘qib bo‘lmadi."}
+		return nil, &aiError{0, "Google javobini o‘qib bo‘lmadi."}
 	}
 	type cand struct {
 		name  string
@@ -174,7 +176,7 @@ func (a *aiService) pickModel(key string) (string, error) {
 		cs = append(cs, cand{m.Name, v, score})
 	}
 	if len(cs) == 0 {
-		return "", &aiError{0, "Bu kalit uchun mos Gemini modeli topilmadi."}
+		return nil, &aiError{0, "Bu kalit uchun mos Gemini modeli topilmadi."}
 	}
 	sort.Slice(cs, func(i, j int) bool {
 		if cs[i].score != cs[j].score {
@@ -182,7 +184,13 @@ func (a *aiService) pickModel(key string) (string, error) {
 		}
 		return cs[i].ver > cs[j].ver
 	})
-	return cs[0].name, nil
+	var out []string
+	for _, c := range cs {
+		if len(out) < 4 {
+			out = append(out, c.name)
+		}
+	}
+	return out, nil
 }
 
 const aiSystem = "Sen o‘zbek tili bo‘yicha tajribali muharrir va hujjat tahlilchisisan. " +
@@ -203,35 +211,49 @@ var toOld = strings.NewReplacer("Ö", "O‘", "ö", "o‘", "Ğ", "G‘", "ğ", 
 
 func toOldLatin(s string) string { return toOld.Replace(s) }
 
-func (a *aiService) run(task, text, question string) (string, error) {
+func retryable(err error) (bool, int) {
+	var e *aiError
+	if errors.As(err, &e) {
+		return e.status >= 500 || e.status == 429 || e.status == 404, e.status
+	}
+	return false, 0
+}
+
+func (a *aiService) run(task, text, question string) (string, string, error) {
+	out, model, err := a.run0(task, text, question)
+	return out, model, err
+}
+
+func (a *aiService) run0(task, text, question string) (string, string, error) {
 	tmpl, ok := aiTasks[task]
 	if !ok {
-		return "", &aiError{0, "Noma’lum amal."}
+		return "", "", &aiError{0, "Noma’lum amal."}
 	}
 	text = strings.TrimSpace(text)
 	if text == "" {
-		return "", &aiError{0, "Tahlil uchun matn kiriting."}
+		return "", "", &aiError{0, "Tahlil uchun matn kiriting."}
 	}
 	if utf8.RuneCountInString(text) > aiMaxRunes {
-		return "", &aiError{0, "Matn juda uzun (" + strconv.Itoa(aiMaxRunes) + " belgidan oshmasin)."}
+		return "", "", &aiError{0, "Matn juda uzun (" + strconv.Itoa(aiMaxRunes) + " belgidan oshmasin)."}
 	}
 	a.mu.Lock()
 	key, model := a.key, a.cfg.Model
+	models := append([]string(nil), a.cfg.Models...)
 	if a.busy {
 		a.mu.Unlock()
-		return "", &aiError{0, "Oldingi so‘rov hali tugamadi."}
+		return "", "", &aiError{0, "Oldingi so‘rov hali tugamadi."}
 	}
 	a.busy = true
 	a.mu.Unlock()
 	defer func() { a.mu.Lock(); a.busy = false; a.mu.Unlock() }()
 	if key == "" || model == "" {
-		return "", &aiError{0, "Avval Gemini kalitini kiriting."}
+		return "", "", &aiError{0, "Avval Gemini kalitini kiriting."}
 	}
 	prompt := tmpl
 	if task == "savol" {
 		q := strings.TrimSpace(question)
 		if q == "" {
-			return "", &aiError{0, "Savolni yozing."}
+			return "", "", &aiError{0, "Savolni yozing."}
 		}
 		if utf8.RuneCountInString(q) > 1000 {
 			q = string([]rune(q)[:1000])
@@ -244,9 +266,58 @@ func (a *aiService) run(task, text, question string) (string, error) {
 		"contents":          []map[string]any{{"role": "user", "parts": []map[string]string{{"text": prompt}}}},
 		"generationConfig":  map[string]any{"temperature": 0.3, "maxOutputTokens": 8192},
 	})
-	b, err := a.call("POST", a.base+model+":generateContent", body, key)
+	if len(models) < 2 { // older config: refresh the fallback list once
+		if ms, err := a.pickModels(key); err == nil {
+			models = ms
+			a.mu.Lock()
+			a.cfg.Models = ms
+			cb, _ := json.Marshal(a.cfg)
+			a.mu.Unlock()
+			os.WriteFile(filepath.Join(a.dir, "config.json"), cb, 0o600)
+		} else {
+			models = []string{model}
+		}
+	}
+	var b []byte
+	var err error
+	used := ""
+	for _, m := range models {
+		for attempt := 0; attempt < 3; attempt++ {
+			b, err = a.call("POST", a.base+m+":generateContent", body, key)
+			if err == nil {
+				used = m
+				break
+			}
+			ok, st := retryable(err)
+			if !ok {
+				return "", "", err // bad key, region, permission: other models will not help
+			}
+			if st == 429 || st == 404 || attempt == 2 {
+				break // next model
+			}
+			time.Sleep(time.Duration(2+attempt*3) * time.Second)
+		}
+		if err == nil {
+			break
+		}
+		logln("ai: fallback from " + strings.TrimPrefix(m, "models/"))
+	}
 	if err != nil {
-		return "", err
+		if len(models) > 1 {
+			return "", "", &aiError{0, "Barcha Gemini modellari hozir band yoki bepul limit tugagan. Bir necha daqiqadan keyin qayta urinib ko‘ring."}
+		}
+		return "", "", err
+	}
+	if used != models[0] { // remember what worked for the rest of this session
+		a.mu.Lock()
+		ms := []string{used}
+		for _, m := range a.cfg.Models {
+			if m != used {
+				ms = append(ms, m)
+			}
+		}
+		a.cfg.Models = ms
+		a.mu.Unlock()
 	}
 	var r struct {
 		Candidates []struct {
@@ -263,10 +334,10 @@ func (a *aiService) run(task, text, question string) (string, error) {
 		} `json:"promptFeedback"`
 	}
 	if json.Unmarshal(b, &r) != nil {
-		return "", &aiError{0, "Google javobini o‘qib bo‘lmadi."}
+		return "", "", &aiError{0, "Google javobini o‘qib bo‘lmadi."}
 	}
 	if r.PromptFeedback.BlockReason != "" || len(r.Candidates) == 0 {
-		return "", &aiError{0, "Gemini bu matnga javob bermadi (xavfsizlik filtri)."}
+		return "", "", &aiError{0, "Gemini bu matnga javob bermadi (xavfsizlik filtri)."}
 	}
 	var out strings.Builder
 	for _, p := range r.Candidates[0].Content.Parts {
@@ -279,10 +350,10 @@ func (a *aiService) run(task, text, question string) (string, error) {
 		s += "\n\n(Javob uzunlik chegarasida to‘xtadi.)"
 	}
 	if s == "" {
-		return "", &aiError{0, "Gemini bo‘sh javob qaytardi."}
+		return "", "", &aiError{0, "Gemini bo‘sh javob qaytardi."}
 	}
-	logln("ai: ok " + task)
-	return s, nil
+	logln("ai: ok " + task + " " + strings.TrimPrefix(used, "models/"))
+	return s, strings.TrimPrefix(used, "models/"), nil
 }
 
 func (a *aiService) saveKey(key string, consent bool) error {
@@ -293,7 +364,7 @@ func (a *aiService) saveKey(key string, consent bool) error {
 	if len(key) < 20 || len(key) > 200 || strings.ContainsAny(key, " \t\r\n") {
 		return &aiError{0, "Kalit formati noto‘g‘ri."}
 	}
-	model, err := a.pickModel(key)
+	models, err := a.pickModels(key)
 	if err != nil {
 		return err
 	}
@@ -306,7 +377,7 @@ func (a *aiService) saveKey(key string, consent bool) error {
 		return &aiError{0, "Kalitni saqlab bo‘lmadi."}
 	}
 	a.mu.Lock()
-	a.key, a.cfg = key, aiConfig{Model: model, Consent: true}
+	a.key, a.cfg = key, aiConfig{Model: models[0], Models: models, Consent: true}
 	cb, _ := json.Marshal(a.cfg)
 	a.mu.Unlock()
 	os.WriteFile(filepath.Join(a.dir, "config.json"), cb, 0o600)
@@ -396,11 +467,11 @@ func (a *aiService) register(mux *http.ServeMux) {
 			fail(w, &aiError{0, "Matn juda katta yoki so‘rov noto‘g‘ri."})
 			return
 		}
-		out, err := a.run(in.Task, in.Text, in.Question)
+		out, model, err := a.run(in.Task, in.Text, in.Question)
 		if err != nil {
 			fail(w, err)
 			return
 		}
-		writeJSON(w, map[string]any{"ok": true, "text": out})
+		writeJSON(w, map[string]any{"ok": true, "text": out, "model": model})
 	})
 }

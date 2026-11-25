@@ -1,8 +1,8 @@
 {
-  "notes": "AI tahlilchi: hujjat tahlili va tahrir (ixtiyoriy, Gemini)",
+  "notes": "AI tahlilchi: Gemini band bolsa qayta urinish va zaxira model",
   "setup": "Yangi_alifbo_konvertori_setup.exe",
-  "sha256": "5f87dc0fca672e97ef6cba66b5e0cfb15b6b1f3f6f75a80fd302abb5e2da3065",
-  "sig": "0tLkgYdTCcR71YwJ+ljke3I4ncuNKgLepJhUw/AvvuweLQnfWR3WxblT/H5vfy11ptZqfF2qHMH1Ut+ffYjUAA==",
-  "size": 4377792,
-  "version": "1.9.0"
+  "sha256": "e89b85ab3ca58c19a1806b1f68a906f292967ccafa780115a23be9d10a68a293",
+  "sig": "hclMRlm3tQmeD4CvNMOhs1YA2JagzDODotUOo+3UZmrgekZqawOEG8IwHSAdDshqTz3zO6/u5eNgWcooN2A0AQ==",
+  "size": 4381372,
+  "version": "1.9.1"
 }

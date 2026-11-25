@@ -469,12 +469,12 @@ $("aiRun").onclick=async()=>{
   let text=$("aiText").value.trim();
   if(!text){m.className="err";m.textContent="Tahlil uchun matn kiriting.";return}
   if(AI.src==="own")text=convert(text,newCounts(),[]); // eski lotin / kirill → yangi alifbo
-  btn.disabled=true;m.textContent="Gemini javob tayyorlamoqda…";
+  btn.disabled=true;m.textContent="Gemini javob tayyorlamoqda… (band bo‘lsa, dastur o‘zi qayta urinadi)";
   $("aiOutCard").hidden=false;const out=$("aiOut");out.textContent="";out.append(el("p","spin","Tahlil qilinmoqda…"));
   const r=await aiPost("ai/run",{task:AI.task,text,question:$("aiQ").value});
   btn.disabled=false;
   if(!r.ok){m.className="err";m.textContent=r.error;$("aiOutCard").hidden=true;return}
-  m.textContent="";aiLast=convert(r.text,newCounts(),[]);renderMd(out,aiLast);
+  m.textContent=r.model?("Javob berdi: "+r.model):"";aiLast=convert(r.text,newCounts(),[]);renderMd(out,aiLast);
 };
 $("aiCopy").onclick=()=>{navigator.clipboard.writeText(aiLast).then(()=>{$("aiCopy").textContent="Nusxa olindi"},()=>{});setTimeout(()=>$("aiCopy").textContent="Nusxa olish",1500)};
 document.querySelector('.steps [data-step="ai"]').addEventListener("click",aiLoad);

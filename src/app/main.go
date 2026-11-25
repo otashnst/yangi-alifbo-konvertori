@@ -236,6 +236,7 @@ func runDialogChild(owner uintptr, name string) {
 	if path == "" {
 		code, _, _ := procCommDlgErr.Call()
 		if code != 0 {
+			os.Stderr.WriteString("commdlg 0x" + strconv.FormatUint(uint64(code), 16))
 			os.Exit(2)
 		}
 		os.Exit(1)
@@ -320,6 +321,8 @@ func main() {
 			self, _ := os.Executable()
 			cmd := exec.Command(self, "--save-dialog", strconv.FormatUint(uint64(owner), 10), name)
 			cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+			var errb strings.Builder
+			cmd.Stderr = &errb
 			out, err := cmd.Output()
 			code := 0
 			if err != nil {
@@ -329,7 +332,7 @@ func main() {
 					code = -1
 				}
 			}
-			logln("dialog exit " + strconv.Itoa(code))
+			logln("dialog exit " + strconv.Itoa(code) + " " + strings.TrimSpace(errb.String()))
 			switch {
 			case code == 1:
 				finish("cancel", "")
