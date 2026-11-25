@@ -6,7 +6,9 @@ package main
 // feature is off in offline mode or when IT sets the DisableAI policy.
 
 import (
+	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -92,6 +94,10 @@ func (a *aiService) call(method, url string, body []byte, key string) ([]byte, e
 		return b, nil
 	}
 	logln("ai: HTTP " + strconv.Itoa(resp.StatusCode))
+	return nil, mapError(resp.StatusCode, b)
+}
+
+func mapError(status int, b []byte) error {
 	var e struct {
 		Error struct {
 			Message string `json:"message"`
@@ -102,17 +108,17 @@ func (a *aiService) call(method, url string, body []byte, key string) ([]byte, e
 	m := strings.ToLower(e.Error.Message)
 	switch {
 	case strings.Contains(m, "location is not supported"):
-		return nil, &aiError{resp.StatusCode, "Gemini’ning bepul tarifi sizning hududingizda ishlamayapti."}
+		return &aiError{status, "Gemini’ning bepul tarifi sizning hududingizda ishlamayapti."}
 	case strings.Contains(m, "api key") || e.Error.Status == "UNAUTHENTICATED":
-		return nil, &aiError{resp.StatusCode, "Kalit noto‘g‘ri yoki o‘chirilgan. Yangi kalit kiriting."}
-	case resp.StatusCode == 429:
-		return nil, &aiError{resp.StatusCode, "Bepul limit vaqtincha tugadi. Bir necha daqiqadan keyin qayta urinib ko‘ring."}
-	case resp.StatusCode == 403:
-		return nil, &aiError{resp.StatusCode, "Bu kalitga Gemini API’dan foydalanish ruxsati yo‘q."}
-	case resp.StatusCode >= 500:
-		return nil, &aiError{resp.StatusCode, "Gemini hozir band (Google serverlari yuklangan). Bir oz kutib, qayta urinib ko‘ring."}
+		return &aiError{status, "Kalit noto‘g‘ri yoki o‘chirilgan. Yangi kalit kiriting."}
+	case status == 429:
+		return &aiError{status, "Bepul limit vaqtincha tugadi. Bir necha daqiqadan keyin qayta urinib ko‘ring."}
+	case status == 403:
+		return &aiError{status, "Bu kalitga Gemini API’dan foydalanish ruxsati yo‘q."}
+	case status >= 500:
+		return &aiError{status, "Gemini hozir band (Google serverlari yuklangan). Bir oz kutib, qayta urinib ko‘ring."}
 	}
-	return nil, &aiError{resp.StatusCode, "Gemini so‘rovni qabul qilmadi (HTTP " + strconv.Itoa(resp.StatusCode) + ")."}
+	return &aiError{status, "Gemini so‘rovni qabul qilmadi (HTTP " + strconv.Itoa(status) + ")."}
 }
 
 var verRe = regexp.MustCompile(`gemini-(\d+(?:\.\d+)?)`)
@@ -211,49 +217,53 @@ var toOld = strings.NewReplacer("Ö", "O‘", "ö", "o‘", "Ğ", "G‘", "ğ", 
 
 func toOldLatin(s string) string { return toOld.Replace(s) }
 
-func retryable(err error) (bool, int) {
-	var e *aiError
-	if errors.As(err, &e) {
-		return e.status >= 500 || e.status == 429 || e.status == 404, e.status
+// thinkingFor keeps the models' internal "thinking" short: editing tasks do not need it,
+// and it is most of the waiting time. Gemini 3 takes a level, 2.5 a budget (0 = off).
+func thinkingFor(model string) map[string]any {
+	v := 0.0
+	if mm := verRe.FindStringSubmatch(strings.ToLower(model)); mm != nil {
+		v, _ = strconv.ParseFloat(mm[1], 64)
 	}
-	return false, 0
+	switch {
+	case v >= 3:
+		return map[string]any{"thinkingLevel": "low"}
+	case v >= 2.5:
+		return map[string]any{"thinkingBudget": 0}
+	}
+	return nil
 }
 
-func (a *aiService) run(task, text, question string) (string, string, error) {
-	out, model, err := a.run0(task, text, question)
-	return out, model, err
+type aiJob struct {
+	key    string
+	models []string
+	prompt string
 }
 
-func (a *aiService) run0(task, text, question string) (string, string, error) {
+// prepare validates the request and builds the prompt (current Latin, as the models expect).
+func (a *aiService) prepare(task, text, question string) (*aiJob, error) {
 	tmpl, ok := aiTasks[task]
 	if !ok {
-		return "", "", &aiError{0, "Noma’lum amal."}
+		return nil, &aiError{0, "Noma’lum amal."}
 	}
 	text = strings.TrimSpace(text)
 	if text == "" {
-		return "", "", &aiError{0, "Tahlil uchun matn kiriting."}
+		return nil, &aiError{0, "Tahlil uchun matn kiriting."}
 	}
 	if utf8.RuneCountInString(text) > aiMaxRunes {
-		return "", "", &aiError{0, "Matn juda uzun (" + strconv.Itoa(aiMaxRunes) + " belgidan oshmasin)."}
+		return nil, &aiError{0, "Matn juda uzun (" + strconv.Itoa(aiMaxRunes) + " belgidan oshmasin)."}
 	}
 	a.mu.Lock()
 	key, model := a.key, a.cfg.Model
 	models := append([]string(nil), a.cfg.Models...)
-	if a.busy {
-		a.mu.Unlock()
-		return "", "", &aiError{0, "Oldingi so‘rov hali tugamadi."}
-	}
-	a.busy = true
 	a.mu.Unlock()
-	defer func() { a.mu.Lock(); a.busy = false; a.mu.Unlock() }()
 	if key == "" || model == "" {
-		return "", "", &aiError{0, "Avval Gemini kalitini kiriting."}
+		return nil, &aiError{0, "Avval Gemini kalitini kiriting."}
 	}
 	prompt := tmpl
 	if task == "savol" {
 		q := strings.TrimSpace(question)
 		if q == "" {
-			return "", "", &aiError{0, "Savolni yozing."}
+			return nil, &aiError{0, "Savolni yozing."}
 		}
 		if utf8.RuneCountInString(q) > 1000 {
 			q = string([]rune(q)[:1000])
@@ -261,99 +271,230 @@ func (a *aiService) run0(task, text, question string) (string, string, error) {
 		prompt += "\n\nSavol: " + toOldLatin(q)
 	}
 	prompt += "\n\n<matn>\n" + toOldLatin(text) + "\n</matn>"
-	body, _ := json.Marshal(map[string]any{
-		"systemInstruction": map[string]any{"parts": []map[string]string{{"text": aiSystem}}},
-		"contents":          []map[string]any{{"role": "user", "parts": []map[string]string{{"text": prompt}}}},
-		"generationConfig":  map[string]any{"temperature": 0.3, "maxOutputTokens": 8192},
-	})
 	if len(models) < 2 { // older config: refresh the fallback list once
 		if ms, err := a.pickModels(key); err == nil {
 			models = ms
-			a.mu.Lock()
-			a.cfg.Models = ms
-			cb, _ := json.Marshal(a.cfg)
-			a.mu.Unlock()
-			os.WriteFile(filepath.Join(a.dir, "config.json"), cb, 0o600)
+			a.setModels(ms)
 		} else {
 			models = []string{model}
 		}
 	}
-	var b []byte
-	var err error
+	return &aiJob{key: key, models: models, prompt: prompt}, nil
+}
+
+func (a *aiService) setModels(ms []string) {
+	a.mu.Lock()
+	a.cfg.Models = ms
+	if len(ms) > 0 {
+		a.cfg.Model = ms[0]
+	}
+	cb, _ := json.Marshal(a.cfg)
+	a.mu.Unlock()
+	os.WriteFile(filepath.Join(a.dir, "config.json"), cb, 0o600)
+}
+
+func (j *aiJob) body(model string, think bool) []byte {
+	gc := map[string]any{"temperature": 0.3, "maxOutputTokens": 8192}
+	if think {
+		if t := thinkingFor(model); t != nil {
+			gc["thinkingConfig"] = t
+		}
+	}
+	b, _ := json.Marshal(map[string]any{
+		"systemInstruction": map[string]any{"parts": []map[string]string{{"text": aiSystem}}},
+		"contents":          []map[string]any{{"role": "user", "parts": []map[string]string{{"text": j.prompt}}}},
+		"generationConfig":  gc,
+	})
+	return b
+}
+
+var streamClient = &http.Client{Transport: &http.Transport{Proxy: http.ProxyFromEnvironment, ResponseHeaderTimeout: 60 * time.Second, TLSHandshakeTimeout: 15 * time.Second}}
+
+// openStream starts a streamed answer; on a non-200 answer it returns the mapped error.
+func (a *aiService) openStream(ctx context.Context, model string, body []byte, key string) (*http.Response, error, string) {
+	req, _ := http.NewRequestWithContext(ctx, "POST", a.base+model+":streamGenerateContent?alt=sse", bytes.NewReader(body))
+	req.Header.Set("x-goog-api-key", key)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := streamClient.Do(req)
+	if err != nil {
+		if ctx.Err() != nil {
+			return nil, &aiError{0, "Bekor qilindi."}, ""
+		}
+		logln("ai: network error")
+		return nil, &aiError{0, "Google serveriga ulanib bo‘lmadi. Internetni tekshiring."}, ""
+	}
+	if resp.StatusCode == 200 {
+		return resp, nil, ""
+	}
+	b, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	resp.Body.Close()
+	logln("ai: HTTP " + strconv.Itoa(resp.StatusCode))
+	return nil, mapError(resp.StatusCode, b), strings.ToLower(string(b))
+}
+
+// run streams the answer to the page as NDJSON lines: {"s":status} {"t":text} {"done":true,"model":..} or {"error":..}.
+func (a *aiService) run(w http.ResponseWriter, r *http.Request, task, text, question string) {
+	emit := func(v map[string]any) {
+		b, _ := json.Marshal(v)
+		w.Write(append(b, '\n'))
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+	}
+	w.Header().Set("Content-Type", "application/x-ndjson")
+	w.Header().Set("Cache-Control", "no-store")
+	fail := func(err error) {
+		var e *aiError
+		msg := "Kutilmagan xato."
+		if errors.As(err, &e) {
+			msg = e.msg
+		}
+		emit(map[string]any{"error": msg})
+	}
+	job, err := a.prepare(task, text, question)
+	if err != nil {
+		fail(err)
+		return
+	}
+	a.mu.Lock()
+	if a.busy {
+		a.mu.Unlock()
+		fail(&aiError{0, "Oldingi so‘rov hali tugamadi."})
+		return
+	}
+	a.busy = true
+	a.mu.Unlock()
+	defer func() { a.mu.Lock(); a.busy = false; a.mu.Unlock() }()
+	ctx, cancel := context.WithTimeout(r.Context(), 4*time.Minute)
+	defer cancel()
+
+	var resp *http.Response
 	used := ""
-	for _, m := range models {
-		for attempt := 0; attempt < 3; attempt++ {
-			b, err = a.call("POST", a.base+m+":generateContent", body, key)
+	for i, m := range job.models {
+		think := true
+		for attempt := 0; attempt < 2 && resp == nil; attempt++ {
+			rs, err, raw := a.openStream(ctx, m, job.body(m, think), job.key)
 			if err == nil {
-				used = m
+				resp, used = rs, m
 				break
+			}
+			if ctx.Err() != nil {
+				return
+			}
+			var e *aiError
+			errors.As(err, &e)
+			if e != nil && e.status == 400 && think && strings.Contains(raw, "think") {
+				think = false // this model rejects the thinking setting: ask again without it
+				attempt--
+				continue
 			}
 			ok, st := retryable(err)
 			if !ok {
-				return "", "", err // bad key, region, permission: other models will not help
+				fail(err)
+				return
 			}
-			if st == 429 || st == 404 || attempt == 2 {
-				break // next model
+			if st == 429 || st == 404 || attempt == 1 {
+				break
 			}
-			time.Sleep(time.Duration(2+attempt*3) * time.Second)
+			emit(map[string]any{"s": "Gemini band — qayta urinilmoqda…"})
+			time.Sleep(2 * time.Second)
 		}
-		if err == nil {
+		if resp != nil {
 			break
 		}
 		logln("ai: fallback from " + strings.TrimPrefix(m, "models/"))
-	}
-	if err != nil {
-		if len(models) > 1 {
-			return "", "", &aiError{0, "Barcha Gemini modellari hozir band yoki bepul limit tugagan. Bir necha daqiqadan keyin qayta urinib ko‘ring."}
+		if i+1 < len(job.models) {
+			emit(map[string]any{"s": "Model band — boshqa model sinab ko‘rilmoqda…"})
 		}
-		return "", "", err
 	}
-	if used != models[0] { // remember what worked for the rest of this session
-		a.mu.Lock()
+	if resp == nil {
+		fail(&aiError{0, "Barcha Gemini modellari hozir band yoki bepul limit tugagan. Bir necha daqiqadan keyin qayta urinib ko‘ring."})
+		return
+	}
+	defer resp.Body.Close()
+	if used != job.models[0] { // start with what worked next time too
 		ms := []string{used}
-		for _, m := range a.cfg.Models {
+		for _, m := range job.models {
 			if m != used {
 				ms = append(ms, m)
 			}
 		}
-		a.cfg.Models = ms
-		a.mu.Unlock()
+		a.setModels(ms)
 	}
-	var r struct {
-		Candidates []struct {
-			Content struct {
-				Parts []struct {
-					Text    string `json:"text"`
-					Thought bool   `json:"thought"`
-				} `json:"parts"`
-			} `json:"content"`
-			FinishReason string `json:"finishReason"`
-		} `json:"candidates"`
-		PromptFeedback struct {
-			BlockReason string `json:"blockReason"`
-		} `json:"promptFeedback"`
-	}
-	if json.Unmarshal(b, &r) != nil {
-		return "", "", &aiError{0, "Google javobini o‘qib bo‘lmadi."}
-	}
-	if r.PromptFeedback.BlockReason != "" || len(r.Candidates) == 0 {
-		return "", "", &aiError{0, "Gemini bu matnga javob bermadi (xavfsizlik filtri)."}
-	}
-	var out strings.Builder
-	for _, p := range r.Candidates[0].Content.Parts {
-		if !p.Thought {
-			out.WriteString(p.Text)
+	short := strings.TrimPrefix(used, "models/")
+	emit(map[string]any{"s": "Javob yozilmoqda…", "model": short})
+
+	sc := bufio.NewScanner(resp.Body)
+	sc.Buffer(make([]byte, 64<<10), 4<<20)
+	got, finish, blocked := 0, "", false
+	for sc.Scan() {
+		line := sc.Text()
+		if !strings.HasPrefix(line, "data:") {
+			continue
+		}
+		var c struct {
+			Candidates []struct {
+				Content struct {
+					Parts []struct {
+						Text    string `json:"text"`
+						Thought bool   `json:"thought"`
+					} `json:"parts"`
+				} `json:"content"`
+				FinishReason string `json:"finishReason"`
+			} `json:"candidates"`
+			PromptFeedback struct {
+				BlockReason string `json:"blockReason"`
+			} `json:"promptFeedback"`
+		}
+		if json.Unmarshal([]byte(strings.TrimSpace(line[5:])), &c) != nil {
+			continue
+		}
+		if c.PromptFeedback.BlockReason != "" {
+			blocked = true
+		}
+		for _, cd := range c.Candidates {
+			for _, p := range cd.Content.Parts {
+				if !p.Thought && p.Text != "" {
+					got += len(p.Text)
+					emit(map[string]any{"t": p.Text})
+				}
+			}
+			if cd.FinishReason != "" {
+				finish = cd.FinishReason
+			}
 		}
 	}
-	s := strings.TrimSpace(out.String())
-	if r.Candidates[0].FinishReason == "MAX_TOKENS" {
-		s += "\n\n(Javob uzunlik chegarasida to‘xtadi.)"
+	if ctx.Err() != nil {
+		return
 	}
-	if s == "" {
-		return "", "", &aiError{0, "Gemini bo‘sh javob qaytardi."}
+	if sc.Err() != nil && got == 0 {
+		fail(&aiError{0, "Javob uzilib qoldi. Qayta urinib ko‘ring."})
+		return
 	}
-	logln("ai: ok " + task + " " + strings.TrimPrefix(used, "models/"))
-	return s, strings.TrimPrefix(used, "models/"), nil
+	if got == 0 {
+		if blocked || finish == "SAFETY" {
+			fail(&aiError{0, "Gemini bu matnga javob bermadi (xavfsizlik filtri)."})
+		} else {
+			fail(&aiError{0, "Gemini bo‘sh javob qaytardi."})
+		}
+		return
+	}
+	note := ""
+	if finish == "MAX_TOKENS" {
+		note = "Javob uzunlik chegarasida to‘xtadi."
+	} else if sc.Err() != nil {
+		note = "Javob oxirigacha kelmadi."
+	}
+	logln("ai: ok " + task + " " + short)
+	emit(map[string]any{"done": true, "model": short, "note": note})
+}
+
+func retryable(err error) (bool, int) {
+	var e *aiError
+	if errors.As(err, &e) {
+		return e.status >= 500 || e.status == 429 || e.status == 404, e.status
+	}
+	return false, 0
 }
 
 func (a *aiService) saveKey(key string, consent bool) error {
@@ -467,11 +608,6 @@ func (a *aiService) register(mux *http.ServeMux) {
 			fail(w, &aiError{0, "Matn juda katta yoki so‘rov noto‘g‘ri."})
 			return
 		}
-		out, model, err := a.run(in.Task, in.Text, in.Question)
-		if err != nil {
-			fail(w, err)
-			return
-		}
-		writeJSON(w, map[string]any{"ok": true, "text": out, "model": model})
+		a.run(w, r, in.Task, in.Text, in.Question)
 	})
 }

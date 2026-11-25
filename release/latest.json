@@ -1,8 +1,8 @@
 {
-  "notes": "AI tahlilchi: Gemini band bolsa qayta urinish va zaxira model",
+  "notes": "AI javobi jonli chiqadi, tezroq; saqlash oynasi tuzatildi",
   "setup": "Yangi_alifbo_konvertori_setup.exe",
-  "sha256": "e89b85ab3ca58c19a1806b1f68a906f292967ccafa780115a23be9d10a68a293",
-  "sig": "hclMRlm3tQmeD4CvNMOhs1YA2JagzDODotUOo+3UZmrgekZqawOEG8IwHSAdDshqTz3zO6/u5eNgWcooN2A0AQ==",
-  "size": 4381372,
-  "version": "1.9.1"
+  "sha256": "e6e564012d352564e411f3a1c4c286f1fd6dbce173f97b0ac97a6d003fe685df",
+  "sig": "KlBgNrJO9omyyUAkXirnZBcLR/WaO+AuNLLLMUnqB+SEl90FGUmodh8SjP3qgfsqvFqQtMnezo2SVNoHHoGeAA==",
+  "size": 4387684,
+  "version": "1.9.2"
 }

@@ -463,18 +463,39 @@ function renderMd(box,text){
     else{ul=null;if(!para){para=el("p");box.append(para)}else para.append(document.createTextNode("\n"));mdInline(para,line)}
   }
 }
-let aiLast="";
+let aiLast="",aiCtl=null;
 $("aiRun").onclick=async()=>{
+  if(aiCtl){aiCtl.abort();return}
   const m=$("aiMsg"),btn=$("aiRun");m.className="note";
   let text=$("aiText").value.trim();
   if(!text){m.className="err";m.textContent="Tahlil uchun matn kiriting.";return}
   if(AI.src==="own")text=convert(text,newCounts(),[]); // eski lotin / kirill → yangi alifbo
-  btn.disabled=true;m.textContent="Gemini javob tayyorlamoqda… (band bo‘lsa, dastur o‘zi qayta urinadi)";
-  $("aiOutCard").hidden=false;const out=$("aiOut");out.textContent="";out.append(el("p","spin","Tahlil qilinmoqda…"));
-  const r=await aiPost("ai/run",{task:AI.task,text,question:$("aiQ").value});
-  btn.disabled=false;
-  if(!r.ok){m.className="err";m.textContent=r.error;$("aiOutCard").hidden=true;return}
-  m.textContent=r.model?("Javob berdi: "+r.model):"";aiLast=convert(r.text,newCounts(),[]);renderMd(out,aiLast);
+  aiCtl=new AbortController();btn.textContent="Bekor qilish";btn.classList.add("cancel");
+  const t0=Date.now();let status="Gemini o‘ylamoqda…",model="",raw="",done=false,err="",note="",lastDraw=0;
+  const tick=()=>{m.className="note";m.textContent=status+" "+Math.round((Date.now()-t0)/1000)+" s"};
+  tick();const timer=setInterval(tick,1000);
+  $("aiOutCard").hidden=false;const out=$("aiOut");out.textContent="";out.append(el("p","spin","Javob shu yerda paydo bo‘ladi…"));
+  const draw=(force)=>{const now=Date.now();if(!force&&now-lastDraw<120)return;lastDraw=now;aiLast=convert(raw,newCounts(),[]);renderMd(out,aiLast)};
+  try{
+    const r=await api("ai/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({task:AI.task,text,question:$("aiQ").value}),signal:aiCtl.signal});
+    const rd=r.body.getReader(),dec=new TextDecoder();let buf="";
+    for(;;){
+      const {value,done:end}=await rd.read();if(end)break;
+      buf+=dec.decode(value,{stream:true});let i;
+      while((i=buf.indexOf("\n"))>=0){
+        const line=buf.slice(0,i);buf=buf.slice(i+1);if(!line.trim())continue;
+        let ev;try{ev=JSON.parse(line)}catch(e){continue}
+        if(ev.s)status=ev.s;if(ev.model)model=ev.model;
+        if(ev.t){raw+=ev.t;status="Javob yozilmoqda…";draw(false)}
+        if(ev.error)err=ev.error;if(ev.done){done=true;note=ev.note||""}
+      }
+    }
+  }catch(e){if(e.name==="AbortError")err=raw?"":"Bekor qilindi.";else err=raw?"":"Dastur bilan aloqa uzildi."}
+  clearInterval(timer);aiCtl=null;btn.textContent="Tahlil qilish";btn.classList.remove("cancel");
+  const secs=Math.round((Date.now()-t0)/1000);
+  if(raw)draw(true);
+  if(err&&!raw){m.className="err";m.textContent=err;$("aiOutCard").hidden=true;return}
+  m.className="note";m.textContent=(done?"Tayyor":"To‘xtatildi")+" · "+secs+" s"+(model?" · "+model:"")+(note?" · "+note:"");
 };
 $("aiCopy").onclick=()=>{navigator.clipboard.writeText(aiLast).then(()=>{$("aiCopy").textContent="Nusxa olindi"},()=>{});setTimeout(()=>$("aiCopy").textContent="Nusxa olish",1500)};
 document.querySelector('.steps [data-step="ai"]').addEventListener("click",aiLoad);

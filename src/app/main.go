@@ -17,6 +17,7 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+	"unicode/utf16"
 	"unsafe"
 
 	webview2 "github.com/jchv/go-webview2"
@@ -77,7 +78,8 @@ func filterFor(ext string) []uint16 {
 		n = "Fayl"
 	}
 	s := n + " (*." + ext + ")\x00*." + ext + "\x00Barcha fayllar (*.*)\x00*.*\x00\x00"
-	return syscall.StringToUTF16(s)
+	// the filter is a list of NUL-separated strings: syscall.StringToUTF16 panics on NUL
+	return utf16.Encode([]rune(s))
 }
 
 // saveDialog shows the Windows "Save as" dialog; returns "" when cancelled.
