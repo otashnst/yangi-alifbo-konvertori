@@ -56,7 +56,7 @@ Dastur oynasi (Microsoft WebView2) interfeysni kompyuter ichidagi kichik serverd
   Imzosi yo‘q yoki noto‘g‘ri yangilanish o‘rnatilmaydi — GitHub akkaunti buzilgan taqdirda ham.
 - Har bir fayl SHA-256 va hajmi bo‘yicha tekshiriladi; yarim yuklangan lug‘at ishlatilmaydi.
 - Maxfiy kalit muallif kompyuterida `relizchi` vositasi bilan yaratilgan va faqat u yerda, oflayn saqlanadi (`src/tools/relizchi`).
-- Ochiq kalit (1.8+): `ttgkHVFlqQ5SIcloORTbN9aFy4FzeOOWeYTydFepfUQ=`
+- Ochiq kalit (1.9+): `KMIIzV7Yg4m7Haig88pZoUQXjOQhv0Mkst7ENdjMVHk=` (1.8 dagi `ttgk…` kaliti ishlatilmaydi — 1.8 o‘rnatilgan kompyuterlarga 1.9 bir marta qo‘lda o‘rnatiladi)
 - Dastur yangilanishi foydalanuvchi «Yangilash» tugmasini bosgandagina o‘rnatiladi.
 
 ## 5. AI tahlilchi (ixtiyoriy)
