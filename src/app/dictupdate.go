@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	appVersion          = "1.9.2"
+	appVersion          = "1.9.3"
 	embeddedDictVersion = "2026.11.18"
 	dictBaseURL         = "https://raw.githubusercontent.com/otashnst/yangi-alifbo-lugat/main/"
 )

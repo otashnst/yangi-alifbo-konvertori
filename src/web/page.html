@@ -77,6 +77,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .aiout p{margin:0;white-space:pre-wrap}
 .aiout ul{margin:0;padding-left:20px;display:grid;gap:4px}
 .aiout .spin{color:var(--muted)}
+.aikeys{display:grid;gap:10px;font-size:14px}
+.krow{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.krow .link{padding:0;font-size:13px;margin-left:auto}
 .btn.cancel{background:#fff;color:var(--bad);border:1px solid #e3b9ab}
 .btn.cancel:hover{background:#fdf3ef}
 .law{border-top:1px solid var(--navy-line);padding-top:14px}
@@ -116,8 +119,8 @@ h1{margin:2px 0 0;font-size:26px;font-weight:600;line-height:1.25;text-wrap:bala
 .field{display:grid;gap:6px}
 .field label{font-weight:600;font-size:14px}
 .field .h{font-size:13px;color:var(--muted)}
-input[type=text],textarea{font:inherit;color:var(--ink);background:#fff;border:1px solid #c9d0da;border-radius:6px;padding:9px 11px;width:100%}
-input[type=text]:focus,textarea:focus{outline:2px solid var(--navy);outline-offset:0;border-color:transparent}
+input[type=text],input[type=password],textarea{font:inherit;color:var(--ink);background:#fff;border:1px solid #c9d0da;border-radius:6px;padding:9px 11px;width:100%}
+input[type=text]:focus,input[type=password]:focus,textarea:focus{outline:2px solid var(--navy);outline-offset:0;border-color:transparent}
 
 /* file card */
 .fcard{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
@@ -178,7 +181,7 @@ button.fixb s{color:var(--bad)}button.fixb b{color:var(--ok)}
 </style></head><body>
 <div class="app">
   <aside class="side">
-    <div class="brand"><div class="mark">Ö</div><div><b>Yangi alifbo</b><span>konvertori · 1.9.2</span></div></div>
+    <div class="brand"><div class="mark">Ö</div><div><b>Yangi alifbo</b><span>konvertori · 1.9.3</span></div></div>
     <nav class="steps" aria-label="Qadamlar">
       <button data-step="1" aria-current="step"><span class="dot">1</span>Fayl tanlash</button>
       <button data-step="2" disabled><span class="dot">2</span>Alifboga o‘girish</button>
@@ -259,7 +262,7 @@ button.fixb s{color:var(--bad)}button.fixb b{color:var(--ok)}
 
     <!-- ai -->
     <section class="view" id="vai" hidden>
-      <header class="vhead"><div><div class="eyebrow">Ixtiyoriy · Google Gemini</div><h1>AI tahlilchi</h1></div></header>
+      <header class="vhead"><div><div class="eyebrow">Ixtiyoriy · Gemini, zaxira: Groq</div><h1>AI tahlilchi</h1></div></header>
       <div class="card pad aioff" id="aiOff" hidden>
         <b id="aiOffTitle">AI tahlilchi o‘chirilgan</b>
         <p class="note" id="aiOffText"></p>
@@ -269,19 +272,19 @@ button.fixb s{color:var(--bad)}button.fixb b{color:var(--ok)}
         <ol class="steps2">
           <li><span><b>aistudio.google.com/apikey</b> saytini oching va Google akkauntingiz bilan kiring.</span> <button class="mini" id="aiOpenSite" type="button">Saytni ochish</button></li>
           <li>«Create API key» tugmasini bosing — kalit bepul.</li>
-          <li>Kalitni nusxalab, quyiga qo‘ying.</li>
+          <li>Kalitni nusxalab, quyiga qo‘ying. Gemini o‘rniga <b>Groq</b> kaliti (gsk_…) ham bo‘ladi.</li>
         </ol>
         <div class="warn">
-          <b>Muhim: matn Google’ga yuboriladi.</b>
-          Bepul tarifda Google yuborilgan matnlardan o‘z mahsulotlarini yaxshilash uchun foydalanishi va ularni xodimlari ko‘rib chiqishi mumkin. Maxfiy, shaxsiy ma’lumotli yoki xizmat siri bo‘lgan hujjatlarni yubormang.
+          <b>Muhim: matn tashqi AI xizmatiga (Google yoki Groq) yuboriladi.</b>
+          Bepul tarifda xizmat egasi yuborilgan matnlardan o‘z mahsulotlarini yaxshilash uchun foydalanishi va ularni xodimlari ko‘rib chiqishi mumkin. Maxfiy, shaxsiy ma’lumotli yoki xizmat siri bo‘lgan hujjatlarni yubormang.
         </div>
         <label class="chk" for="aiConsent"><input type="checkbox" id="aiConsent"><span><b>Tushundim:</b> AI tahlilchiga faqat maxfiy bo‘lmagan matn yuboraman.</span></label>
-        <div class="field"><label for="aiKey">Gemini API kaliti</label><span class="h">Kalit shu kompyuterda Windows shifrlashi bilan saqlanadi va faqat Google’ga yuboriladi.</span>
-          <div class="row"><input type="password" id="aiKey" autocomplete="off" spellcheck="false" placeholder="AIza…" style="flex:1;min-width:220px"><button class="btn" id="aiSave" style="padding:9px 18px;font-size:14px">Ulash</button></div>
+        <div class="field"><label for="aiKey">Gemini yoki Groq API kaliti</label><span class="h">Kalit shu kompyuterda Windows shifrlashi bilan saqlanadi va faqat o‘z xizmatiga (Google yoki Groq) yuboriladi.</span>
+          <div class="row"><input type="password" id="aiKey" autocomplete="off" spellcheck="false" placeholder="AIza… yoki gsk_…" style="flex:1;min-width:220px"><button class="btn" id="aiSave" style="padding:9px 18px;font-size:14px">Ulash</button></div>
           <span id="aiSetupMsg" class="note" aria-live="polite"></span></div>
       </div>
       <div id="aiMain" hidden style="display:grid;gap:16px">
-        <div class="warn slim">Tahlil uchun matn Google serverlariga yuboriladi. Maxfiy hujjatlarni yubormang.</div>
+        <div class="warn slim">Tahlil uchun matn Google’ga (Gemini band bo‘lsa — Groq’ga) yuboriladi. Maxfiy hujjatlarni yubormang.</div>
         <div class="card pad" style="display:grid;gap:14px">
           <div class="seg" role="radiogroup" aria-label="Matn manbasi">
             <button type="button" role="radio" aria-checked="true" data-src="own">O‘z matnim</button>
@@ -305,7 +308,15 @@ button.fixb s{color:var(--bad)}button.fixb b{color:var(--ok)}
           <div class="aiout" id="aiOut"></div>
           <div class="tfoot">AI xato qilishi mumkin — natijani tekshirib ishlating.</div>
         </div>
-        <div class="note">Kalit: <span id="aiKeyHint"></span> · <span id="aiModel"></span> · <button class="link" id="aiDel" style="padding:0;font-size:13px">Kalitni o‘chirish</button></div>
+        <div class="card pad aikeys">
+          <div class="krow" id="aiRowGemini"><b>Gemini</b><span class="note" id="aiGemInfo"></span><button class="link" data-del="gemini">O‘chirish</button></div>
+          <div class="krow" id="aiRowGroq"><b>Groq <span class="note">(zaxira)</span></b><span class="note" id="aiGroqInfo"></span><button class="link" data-del="groq">O‘chirish</button></div>
+          <div id="aiAdd" hidden style="display:grid;gap:8px">
+            <span class="note" id="aiAddText"></span>
+            <div class="row"><input type="password" id="aiKey2" autocomplete="off" spellcheck="false" style="flex:1;min-width:220px"><button class="btn" id="aiSave2" style="padding:9px 18px;font-size:14px">Ulash</button><button class="mini" id="aiOpenSite2" type="button">Saytni ochish</button></div>
+            <span id="aiAddMsg" class="note" aria-live="polite"></span>
+          </div>
+        </div>
       </div>
     </section>
 

@@ -422,7 +422,16 @@ function aiRender(){
     $("aiOffText").textContent=st.reason==="policy"?"Tashkilotingiz administratori AI tahlilchidan foydalanishni o‘chirgan.":st.reason==="policy_offline"?"Tashkilotingiz administratori bu kompyuterda internetdan foydalanishni o‘chirgan. AI tahlilchi internet orqali ishlaydi.":"«Internetga ulanmaslik» rejimi yoqilgan. AI tahlilchi internet orqali ishlaydi — uni ishlatish uchun chap paneldagi belgini olib tashlang.";
     return;
   }
-  if(st.hasKey){$("aiKeyHint").textContent="••••"+st.keyHint;$("aiModel").textContent=st.model}
+  if(st.hasKey){
+    const g=st.gemini||{},q=st.groq||{};
+    $("aiGemInfo").textContent=g.hasKey?("••••"+g.keyHint+" · "+g.model):"ulanmagan";
+    $("aiGroqInfo").textContent=q.hasKey?("••••"+q.keyHint+" · "+q.model):"ulanmagan — Gemini band bo‘lganda ishlaydi";
+    document.querySelector('[data-del="gemini"]').hidden=!g.hasKey;document.querySelector('[data-del="groq"]').hidden=!q.hasKey;
+    AI.addProv=!q.hasKey?"groq":!g.hasKey?"gemini":"";
+    $("aiAdd").hidden=!AI.addProv;
+    if(AI.addProv==="groq"){$("aiAddText").textContent="Gemini band bo‘lganda javobni Groq yozadi. Bepul kalitni console.groq.com/keys saytidan oling.";$("aiKey2").placeholder="gsk_…"}
+    if(AI.addProv==="gemini"){$("aiAddText").textContent="Gemini o‘zbek tilida yaxshiroq yozadi. Bepul kalitni aistudio.google.com/apikey saytidan oling.";$("aiKey2").placeholder="AIza…"}
+  }
   const f=$("aiSrcFile");f.disabled=!(S.r&&S.r.text);f.textContent=S.file?("Joriy fayl: "+S.file.name):"Joriy fayl";
   if(f.disabled&&AI.src==="file")aiSetSrc("own");
 }
@@ -436,7 +445,19 @@ function aiCount(){const n=[...$("aiText").value].length,max=(AI.status&&AI.stat
 document.querySelectorAll("#vai .seg button").forEach(b=>b.onclick=()=>{if(!b.disabled)aiSetSrc(b.dataset.src)});
 document.querySelectorAll("#vai .tasks button").forEach(b=>b.onclick=()=>{AI.task=b.dataset.task;document.querySelectorAll("#vai .tasks button").forEach(x=>x.setAttribute("aria-checked",String(x===b)));$("aiQWrap").hidden=AI.task!=="savol"});
 $("aiText").addEventListener("input",aiCount);
-$("aiOpenSite").onclick=()=>{if(window.openURL)window.openURL("https://aistudio.google.com/apikey");else{const a=document.createElement("a");a.href="https://aistudio.google.com/apikey";a.target="_blank";a.rel="noopener";a.click()}};
+function aiOpen(u){if(window.openURL)window.openURL(u);else{const a=document.createElement("a");a.href=u;a.target="_blank";a.rel="noopener";a.click()}}
+$("aiOpenSite").onclick=()=>aiOpen("https://aistudio.google.com/apikey");
+$("aiOpenSite2").onclick=()=>aiOpen(AI.addProv==="gemini"?"https://aistudio.google.com/apikey":"https://console.groq.com/keys");
+$("aiSave2").onclick=async()=>{
+  const m=$("aiAddMsg"),k=$("aiKey2").value.trim();m.className="note";
+  if(AI.addProv==="groq"&&!k.startsWith("gsk_")){m.className="err";m.textContent="Groq kaliti «gsk_» bilan boshlanadi.";return}
+  if(AI.addProv==="gemini"&&k.startsWith("gsk_")){m.className="err";m.textContent="Bu Groq kaliti — Gemini kaliti «AIza» bilan boshlanadi.";return}
+  $("aiSave2").disabled=true;m.textContent="Kalit tekshirilmoqda…";
+  const r=await aiPost("ai/key",{key:k,consent:true});
+  $("aiSave2").disabled=false;
+  if(!r.ok){m.className="err";m.textContent=r.error;return}
+  $("aiKey2").value="";m.textContent="";AI.status=r.status;aiRender();
+};
 $("aiSave").onclick=async()=>{
   const m=$("aiSetupMsg");m.className="note";
   if(!$("aiConsent").checked){m.className="err";m.textContent="Avval ogohlantirishni tasdiqlang.";return}
@@ -446,7 +467,7 @@ $("aiSave").onclick=async()=>{
   if(!r.ok){m.className="err";m.textContent=r.error;return}
   $("aiKey").value="";m.textContent="";AI.status=r.status;aiRender();
 };
-$("aiDel").onclick=async()=>{const r=await aiPost("ai/key/delete");if(r.status)AI.status=r.status;$("aiConsent").checked=false;$("aiOutCard").hidden=true;aiRender()};
+document.querySelectorAll("#vai [data-del]").forEach(b=>b.onclick=async()=>{const r=await aiPost("ai/key/delete",{provider:b.dataset.del});if(r.status)AI.status=r.status;if(r.status&&!r.status.hasKey){$("aiConsent").checked=false;$("aiOutCard").hidden=true}aiRender()});
 // tiny safe markdown: headings, bullets, **bold** — built with DOM nodes, never innerHTML
 function mdInline(parent,line){
   const parts=line.split(/(\*\*[^*]+\*\*)/g);
@@ -471,7 +492,7 @@ $("aiRun").onclick=async()=>{
   if(!text){m.className="err";m.textContent="Tahlil uchun matn kiriting.";return}
   if(AI.src==="own")text=convert(text,newCounts(),[]); // eski lotin / kirill → yangi alifbo
   aiCtl=new AbortController();btn.textContent="Bekor qilish";btn.classList.add("cancel");
-  const t0=Date.now();let status="Gemini o‘ylamoqda…",model="",raw="",done=false,err="",note="",lastDraw=0;
+  const t0=Date.now();let status="So‘rov yuborilmoqda…",model="",raw="",done=false,err="",note="",lastDraw=0;
   const tick=()=>{m.className="note";m.textContent=status+" "+Math.round((Date.now()-t0)/1000)+" s"};
   tick();const timer=setInterval(tick,1000);
   $("aiOutCard").hidden=false;const out=$("aiOut");out.textContent="";out.append(el("p","spin","Javob shu yerda paydo bo‘ladi…"));

@@ -159,7 +159,11 @@ func startServer(exitWhenIdle bool) string {
 	if v := os.Getenv("YA_GEMINI_URL"); v != "" {
 		geminiURL = v
 	}
-	newAIService(baseDir, geminiURL, settings.netAllowed).register(mux)
+	groqURL := groqBaseURL
+	if v := os.Getenv("YA_GROQ_URL"); v != "" {
+		groqURL = v
+	}
+	newAIService(baseDir, geminiURL, groqURL, settings.netAllowed).register(mux)
 	fsub, _ := fs.Sub(fontFS, "fonts")
 	mux.Handle("/fonts/", http.StripPrefix("/fonts/", http.FileServer(http.FS(fsub))))
 	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
@@ -354,8 +358,8 @@ func main() {
 		}()
 	})
 	w.Bind("openURL", func(u string) {
-		// only the Google AI Studio key page may be opened from the app
-		if u == "https://aistudio.google.com/apikey" {
+		// only the two AI key pages may be opened from the app
+		if u == "https://aistudio.google.com/apikey" || u == "https://console.groq.com/keys" {
 			exec.Command("rundll32", "url.dll,FileProtocolHandler", u).Start()
 		}
 	})

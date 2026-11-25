@@ -1,8 +1,8 @@
 {
-  "notes": "AI javobi jonli chiqadi, tezroq; saqlash oynasi tuzatildi",
+  "notes": "AI tahlilchi: Gemini band paytida Groq zaxira kaliti ishlaydi",
   "setup": "Yangi_alifbo_konvertori_setup.exe",
-  "sha256": "e6e564012d352564e411f3a1c4c286f1fd6dbce173f97b0ac97a6d003fe685df",
-  "sig": "KlBgNrJO9omyyUAkXirnZBcLR/WaO+AuNLLLMUnqB+SEl90FGUmodh8SjP3qgfsqvFqQtMnezo2SVNoHHoGeAA==",
-  "size": 4387684,
-  "version": "1.9.2"
+  "sha256": "545b94acb5bae5391f0b701385ed7af1563664065746ec41f8a43e2825b3590b",
+  "sig": "5mbgYBHiZJBcTyaBfd0QT0mC6bM86/V9swRuav91/DJcb0bvXL2MBxwWcjYymyOi3xy7Q6dL5l2XHfR10ifLBg==",
+  "size": 4396726,
+  "version": "1.9.3"
 }
